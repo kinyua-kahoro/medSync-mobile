@@ -75,7 +75,7 @@ fun Home_Screen(navController: NavHostController) {
                 Spacer(modifier = Modifier.height(16.dp))
 
                 Text(
-                    text = "MedSync is a healthcare management system that connects patients, doctors, staff, and admins in one platform for appointments, records, and communication.",
+                    text = "MedSync is a healthcare management system that connects patients and doctors in one platform for appointments, records, and communication.",
                     textAlign = TextAlign.Center,
                     color = Color.White,
                     fontSize = 16.sp,
