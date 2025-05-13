@@ -1,0 +1,17 @@
+package com.edwin.medsync.navigation
+
+const val ROUTE_LOGIN="login"
+const val  ROUTE_REGISTER="register"
+const val ROUTE_HOME="home"
+const val ROUTE_DASHBOARD="dashboard"
+const val ROUTE_PROFILE="profile"
+const val ROUTE_MEDICATION="medication"
+const val ROUTE_ADMIN="admin"
+const val ROUTE_DOCTOR="doctor"
+const val ROUTE_PATIENT="patient"
+const val ROUTE_APPOINTMENTS="appointments"
+const val ROUTE_PRESCRIPTIONS="prescriptions"
+const val ROUTE_UPDATE_HISTORY="update"
+const val ROUTE_BOOK_APPOINTMENT="book_appointment/{patientId}"
+const val ROUTE_DOCTOR_PROFILE="doctor_profile"
+const val ROUTE_PATIENT_PROFILE="patient_profile"
