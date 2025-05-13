@@ -11,10 +11,11 @@ import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ValueEventListener
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import com.google.firebase.database.DatabaseReference
 
 class AppointmentViewModel : ViewModel() {
 
-    private val database = FirebaseDatabase.getInstance().getReference("appointments")
+    private val db = FirebaseDatabase.getInstance().getReference("appointments")
 
     var appointmentsList = mutableStateListOf<Appointment>()
         private set
@@ -81,4 +82,20 @@ class AppointmentViewModel : ViewModel() {
                 Log.e("Firebase", "Failed to update appointment status: ${error.message}")
             }
     }
+    // Function to update appointment status to complete
+    private fun markAppointmentAsComplete(appointment: Appointment) {
+        // Get reference to Firebase Realtime Database
+        val database = FirebaseDatabase.getInstance()
+        val appointmentRef: DatabaseReference = database.reference.child("appointments").child(appointment.appointmentId!!)
+
+        // Update the status of the appointment to "complete"
+        appointmentRef.child("status").setValue("complete")
+            .addOnSuccessListener {
+                Log.d("MedicalHistory", "Appointment marked as complete")
+            }
+            .addOnFailureListener { exception ->
+                Log.e("MedicalHistory", "Failed to mark appointment as complete", exception)
+            }
+    }
+
 }

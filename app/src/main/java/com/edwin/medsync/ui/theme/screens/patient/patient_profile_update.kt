@@ -130,7 +130,7 @@ fun PatientProfileUpdate(navController: NavHostController, firebaseService: Fire
                         NavigationDrawerItem(
                             label = { Text(label) },
                             selected = false,
-                            icon = { Icon(icon, contentDescription = label) },
+                            icon = { Icon(icon, contentDescription = label,tint = MaterialTheme.colorScheme.primary) },
                             onClick = {
                                 scope.launch { drawerState.close() }
                                 if (navController.currentDestination?.route != route) {
@@ -168,7 +168,7 @@ fun PatientProfileUpdate(navController: NavHostController, firebaseService: Fire
         Scaffold(
             topBar = {
                 TopAppBar(
-                    title = { Text("Update Profile") },
+                    title = { Text("MedSync") },
                     navigationIcon = {
                         IconButton(onClick = {
                             scope.launch {

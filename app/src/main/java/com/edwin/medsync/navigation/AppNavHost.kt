@@ -11,6 +11,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.edwin.medsync.data.AuthViewModel
+import com.edwin.medsync.model.Appointment
 import com.edwin.medsync.ui.theme.screens.admin.Admin_Screen
 import com.edwin.medsync.ui.theme.screens.dashboard.Dashboard_Screen
 import com.edwin.medsync.ui.theme.screens.doctor.AppointmentManagementScreen
@@ -37,6 +38,8 @@ fun AppNavHost(modifier: Modifier = Modifier,
                viewModel: AuthViewModel,
                startDestination: String=ROUTE_HOME) {
     val patientId = FirebaseAuth.getInstance().currentUser?.uid ?: return
+    val historyEntryId = FirebaseAuth.getInstance().currentUser?.uid ?: return
+    val appointmentId = FirebaseAuth.getInstance().currentUser?.uid ?: return
     NavHost(modifier = modifier,
         navController = navController,
         startDestination = startDestination){
@@ -62,7 +65,7 @@ fun AppNavHost(modifier: Modifier = Modifier,
             Admin_Screen(navController)
         }
         composable (ROUTE_DOCTOR){
-            Doctor_Screen(navController, firebaseService = FirebaseService())
+            Doctor_Screen(navController, firebaseService = FirebaseService(), appointment = Appointment())
         }
         composable (ROUTE_PATIENT){
             Patient_Screen(navController, firebaseService = FirebaseService())
@@ -95,7 +98,7 @@ fun AppNavHost(modifier: Modifier = Modifier,
         }
         composable("medicalHistoryUpdateScreen/{patientId}") { backStackEntry ->
             val patientId = backStackEntry.arguments?.getString("patientId") ?: ""
-            MedicalHistoryUpdateScreen(patientId = patientId, navController=navController) {
+            MedicalHistoryUpdateScreen(patientId = patientId, navController=navController, historyEntryId = historyEntryId, appointmentId = appointmentId) {
                 navController.popBackStack() // Pop the back stack after submitting
             }
         }

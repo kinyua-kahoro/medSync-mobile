@@ -52,6 +52,11 @@ fun MedicalHistoryScreen(
     val medicalHistoryState = viewModel.medicalHistory.collectAsState()
     val medicalHistoryList = medicalHistoryState.value
 
+    // Assume you have a method to get appointment details for the patient
+    val appointment = viewModel.getAppointmentForPatient(patientId) // Add this method in your ViewModel
+    // Trigger to update medical history and mark appointment as complete
+    val updatedMedicalHistory = MedicalHistory(description = "New description", date = System.currentTimeMillis())
+
     LaunchedEffect(patientId) {
         viewModel.fetchMedicalHistory(patientId)
     }
@@ -98,7 +103,7 @@ fun MedicalHistoryScreen(
                         NavigationDrawerItem(
                             label = { Text(label) },
                             selected = false,
-                            icon = { Icon(icon, contentDescription = label) },
+                            icon = { Icon(icon, contentDescription = label,tint = MaterialTheme.colorScheme.primary) },
                             onClick = {
                                 scope.launch { drawerState.close() }
                                 if (navController.currentDestination?.route != route) {
@@ -136,7 +141,7 @@ fun MedicalHistoryScreen(
         Scaffold(
             topBar = {
                 TopAppBar(
-                    title = { Text("Medical History") },
+                    title = { Text("MedSync") },
                     navigationIcon = {
                         IconButton(onClick = {
                             scope.launch {
@@ -169,7 +174,8 @@ fun MedicalHistoryScreen(
                             .padding(16.dp)
                     ) {
                         items(items = medicalHistoryList) { history ->
-                            MedicalHistoryCard(medicalHistory = history, appointment = Appointment())
+                            // Pass both medical history and appointment to the card
+                            MedicalHistoryCard(medicalHistory = history, appointment = appointment)
                         }
                     }
                 }
@@ -178,20 +184,13 @@ fun MedicalHistoryScreen(
     }
 }
 
+
 @Composable
 fun MedicalHistoryCard(medicalHistory: MedicalHistory, appointment: Appointment) {
-    var doctorName by remember { mutableStateOf("Loading...") }
+    val doctorName = appointment.doctorName ?: "Unknown Doctor"
 
-    // Safe call to get patient name if patientId is not null
-    LaunchedEffect(appointment.doctorId) {
-        appointment.doctorId?.let { doctorId ->
-            getPatientFullName(doctorId) { name ->
-                doctorName = name
-            }
-        } ?: run {
-            doctorName = "Unknown Doctor"  // Fallback if patientId is null
-        }
-    }
+    // Log the doctor name to verify it's being passed correctly
+    Log.d("MedicalHistoryCard", "Doctor Name: $doctorName")
 
     ElevatedCard(
         modifier = Modifier
@@ -225,7 +224,7 @@ fun MedicalHistoryCard(medicalHistory: MedicalHistory, appointment: Appointment)
                     style = MaterialTheme.typography.bodyLarge.copy(color = Color.Gray)
                 )
                 Text(
-                    text = "Doctor: $doctorName",  // This will display "Loading..." initially
+                    text = "Doctor: $doctorName",
                     style = MaterialTheme.typography.bodyLarge.copy(color = Color.Gray)
                 )
             }
@@ -234,22 +233,24 @@ fun MedicalHistoryCard(medicalHistory: MedicalHistory, appointment: Appointment)
 
             Divider(modifier = Modifier.padding(vertical = 8.dp))
 
-//            Button(
-//                onClick = {
-//                    // Handle navigation to detailed view
-//                },
-//                modifier = Modifier.fillMaxWidth(),
-//                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
-//            ) {
-//                Text(
-//                    text = "View Details",
-//                    color = Color.White,
-//                    style = MaterialTheme.typography.labelMedium
-//                )
-//            }
+//               Button(
+//                   onClick = {
+//                       // Handle navigation to detailed view
+//                   },
+//                   modifier = Modifier.fillMaxWidth(),
+//                   colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+//               ) {
+//                   Text(
+//                       text = "View Details",
+//                       color = Color.White,
+//                       style = MaterialTheme.typography.labelMedium
+//                   )
+//               }
         }
     }
 }
+
+
 
 //fun fetchDoctorName(doctorId: String, callback: (String) -> Unit) {
 //    val db = FirebaseDatabase.getInstance().reference
@@ -266,17 +267,6 @@ fun MedicalHistoryCard(medicalHistory: MedicalHistory, appointment: Appointment)
 //            callback("Unknown Doctor")
 //        }
 //}
-fun getDoctorFullName(doctorId: String, onResult: (String) -> Unit) {
-    val database = FirebaseDatabase.getInstance()
-    val doctorRef = database.getReference("doctors").child(doctorId)
 
-    doctorRef.get().addOnSuccessListener { snapshot ->
-        val fullName = snapshot.child("fullName").getValue(String::class.java)
-        onResult(fullName ?: "Unknown Doctor") // Provide a default value if name is not found
-    }.addOnFailureListener {
-        // Handle failure
-        onResult("Error fetching name")
-    }
-}
 
 

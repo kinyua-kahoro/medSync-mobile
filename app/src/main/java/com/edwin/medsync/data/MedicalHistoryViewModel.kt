@@ -7,6 +7,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.edwin.medsync.model.Appointment
 import kotlinx.coroutines.launch
 
 class MedicalHistoryViewModel : ViewModel() {
@@ -49,5 +50,20 @@ class MedicalHistoryViewModel : ViewModel() {
             .addOnFailureListener { exception ->
                 Log.e("MedicalHistoryViewModel", "Failed to add medical history", exception)
             }
+    }
+    fun getAppointmentForPatient(patientId: String): Appointment {
+        // Fetch the appointment based on patientId
+        // You might fetch from Firebase or local database
+        return Appointment(
+            appointmentId = "some-id",
+            patientId = patientId,
+            doctorId = "some-doctor-id",
+            doctorName = "Dr. Emma Wanjiku",
+            patientName = "Kellen Kanyi",
+            reason = "Coughing blood",
+            status = "approved",
+            date = "2025-07-13",
+            time = "9:30AM"
+        )
     }
 }

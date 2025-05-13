@@ -184,7 +184,7 @@ fun DoctorProfileUpdate(navController: NavHostController, firebaseService: Fireb
                 TopAppBar(
                     title = {
                         Text(
-                            text = "Update Profile",
+                            text = "MedSync",
                             style = MaterialTheme.typography.titleLarge,
                             color = Color.White
                         )

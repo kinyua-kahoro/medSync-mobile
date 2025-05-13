@@ -2,6 +2,7 @@ package com.edwin.medsync.ui.theme.screens.doctor
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -24,6 +25,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
 import androidx.navigation.NavHostController
 import com.edwin.medsync.R
 import com.edwin.medsync.model.Appointment
@@ -34,10 +36,12 @@ import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun Doctor_Screen(navController: NavHostController, firebaseService: FirebaseService) {
+fun Doctor_Screen(navController: NavHostController, firebaseService: FirebaseService,appointment: Appointment,) {
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
 
+
+    var appointmentCount by remember { mutableStateOf(0) }
     var userName by remember { mutableStateOf("") }
     LaunchedEffect(Unit) {
         val userId = FirebaseAuth.getInstance().currentUser?.uid
@@ -58,6 +62,7 @@ fun Doctor_Screen(navController: NavHostController, firebaseService: FirebaseSer
             }
         }
     }
+
 
 
     ModalNavigationDrawer(
@@ -95,7 +100,7 @@ fun Doctor_Screen(navController: NavHostController, firebaseService: FirebaseSer
 
                     val navItems = listOf(
                         Triple("Dashboard", Icons.Default.Home, ROUTE_DOCTOR),
-                        Triple("Patients", Icons.Default.AccountCircle, ROUTE_APPOINTMENTS),
+                        Triple("Appointments", Icons.Default.AccountCircle, ROUTE_APPOINTMENTS),
                         Triple("My Profile", Icons.Default.AccountCircle, ROUTE_DOCTOR_PROFILE)
                     )
 
@@ -240,18 +245,29 @@ fun Doctor_Screen(navController: NavHostController, firebaseService: FirebaseSer
                         .fillMaxWidth()
                 )
 
-
+                val sortedAppointments = appointments.sortedWith(
+                    compareByDescending<Appointment> {
+                        when (it.status?.lowercase()) {
+                            "approved" -> 2
+                            "complete" -> 1
+                            else -> 0
+                        }
+                    }.thenByDescending { it.timeMillis ?: 0L }
+                )
                 Column(
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 24.dp)
+                        .verticalScroll(rememberScrollState())
                 ) {
-                    appointments.forEach { appointment ->
+                    sortedAppointments.forEach { appointment ->
                         AppointmentItem(
                             patientName = appointment.fullName ?: "Unknown",
                             time = appointment.time ?: "N/A",
-                            reason = appointment.reason ?: "No reason provided"
+                            reason = appointment.reason ?: "No reason provided",
+                            appointment,
+                            navController=navController,
                         )
                     }
                 }
@@ -262,12 +278,27 @@ fun Doctor_Screen(navController: NavHostController, firebaseService: FirebaseSer
 }
 
 @Composable
-fun AppointmentItem(patientName: String, time: String, reason: String) {
+fun AppointmentItem(patientName: String, time: String, reason: String,appointment: Appointment,navController: NavController) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth()
+                            .clickable {
+                                navController.navigate("patientProfileScreen/${appointment.patientId}")
+                            },
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
         shape = RoundedCornerShape(12.dp)
     ) {
+        var patientName by remember { mutableStateOf("Loading...") }
+
+        // Safe call to get patient name if patientId is not null
+        LaunchedEffect(appointment.patientId) {
+            appointment.patientId?.let { patientId ->
+                getPatientFullName(patientId) { name ->
+                    patientName = name
+                }
+            } ?: run {
+                patientName = "Unknown Patient"  // Fallback if patientId is null
+            }
+        }
         Column(modifier = Modifier.padding(12.dp)) {
             Text(text = patientName, style = MaterialTheme.typography.titleSmall)
             Spacer(modifier = Modifier.height(4.dp))

@@ -8,8 +8,10 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -87,6 +89,7 @@ import kotlinx.coroutines.launch
 import kotlin.collections.isNotEmpty
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.filled.ExitToApp
+import androidx.compose.ui.unit.sp
 import com.edwin.medsync.navigation.ROUTE_LOGIN
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -217,7 +220,7 @@ fun Patient_Screen(navController: NavHostController,firebaseService: FirebaseSer
         Scaffold(
             topBar = {
                 TopAppBar(
-                    title = { Text("MedSync", color = Color.White) },
+                    title = { Text("MedSync") },
                     navigationIcon = {
                         IconButton(onClick = {
                             scope.launch {
@@ -228,12 +231,10 @@ fun Patient_Screen(navController: NavHostController,firebaseService: FirebaseSer
                             Icon(Icons.Default.Menu, contentDescription = "Menu", tint = Color.White)
                         }
                     },
-                    actions = {
-                        IconButton(onClick = { }) {
-                            Icon(Icons.Default.AccountCircle, contentDescription = "Profile", tint = Color.White)
-                        }
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.primary)
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer,
+                        titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
                 )
             }
         ) { innerPadding ->
@@ -272,12 +273,26 @@ fun Patient_Screen(navController: NavHostController,firebaseService: FirebaseSer
                 }
 
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(IntrinsicSize.Min),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    StatCard(title = "Appointments", count = appointmentCount)
-                    NextAppointmentCard(appointment = nextAppointment)
+                    StatCard(
+                        title = "Appointments",
+                        count = appointmentCount,
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight()
+                    )
+                    NextAppointmentCard(
+                        appointment = nextAppointment,
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight()
+                    )
                 }
+
 
                 Text(
                     text = "Quick Actions",
@@ -285,16 +300,34 @@ fun Patient_Screen(navController: NavHostController,firebaseService: FirebaseSer
                 )
 
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceEvenly
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(IntrinsicSize.Min) // Ensures children match tallest one
+                        .padding(horizontal = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    QuickActionCard("Book Appointment", R.drawable.ic_appointment) {
+                    QuickActionCard(
+                        title = "Book Appointment",
+                        iconRes = R.drawable.ic_appointment,
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight() // Ensures height matches tallest sibling
+                    ) {
                         navController.navigate("book_appointment/$patientId")
                     }
-                    QuickActionCard("View History", R.drawable.ic_history) {
+
+                    QuickActionCard(
+                        title = "View History",
+                        iconRes = R.drawable.ic_history,
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight()
+                    ) {
                         navController.navigate("medical_history/$patientId")
                     }
                 }
+
+
                 val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: ""
                 UpcomingAppointments(patientId = currentUserId, firebaseService = firebaseService)
             }
@@ -304,47 +337,54 @@ fun Patient_Screen(navController: NavHostController,firebaseService: FirebaseSer
 
 
 @Composable
-fun StatCard(title: String, count: Int) {
+fun StatCard(
+    title: String,
+    count: Int,
+    modifier: Modifier = Modifier
+) {
     Card(
-        modifier = Modifier
-            .width(160.dp)
-            .shadow(6.dp, shape = RoundedCornerShape(16.dp)),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        modifier = modifier,
         shape = RoundedCornerShape(16.dp),
-        elevation = CardDefaults.cardElevation(8.dp)
+        elevation = CardDefaults.cardElevation(6.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
     ) {
         Column(
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(
-                text = "$count",
-                style = MaterialTheme.typography.headlineLarge,
+            Text(text = title,
+                style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary
-            )
-            Text(
-                text = title,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface
-            )
+                fontSize = 19.sp,
+                color = MaterialTheme.colorScheme.primary)
+            Text(text = count.toString(), style = MaterialTheme.typography.titleLarge, fontSize = 40.sp,)
         }
     }
 }
 
 @Composable
-fun QuickActionCard(title: String, iconRes: Int, onClick: () -> Unit) {
+fun QuickActionCard(
+    title: String,
+    iconRes: Int,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
     Card(
-        modifier = Modifier
-            .width(140.dp)
+        modifier = modifier
             .clickable { onClick() },
         shape = RoundedCornerShape(16.dp),
         elevation = CardDefaults.cardElevation(6.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer)
     ) {
         Column(
-            modifier = Modifier.padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+            modifier = Modifier
+                .fillMaxSize() // Fill both width and height
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
             Icon(
                 painter = painterResource(id = iconRes),
@@ -361,6 +401,8 @@ fun QuickActionCard(title: String, iconRes: Int, onClick: () -> Unit) {
         }
     }
 }
+
+
 
 @Composable
 fun UpcomingAppointments(patientId: String, firebaseService: FirebaseService) {
@@ -407,18 +449,16 @@ fun UpcomingAppointments(patientId: String, firebaseService: FirebaseService) {
 }
 
 @Composable
-fun NextAppointmentCard(appointment: Appointment?) {
+fun NextAppointmentCard(modifier: Modifier = Modifier, appointment: Appointment?) {
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
+        modifier = modifier
             .shadow(8.dp, shape = RoundedCornerShape(20.dp)),
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
         elevation = CardDefaults.cardElevation(8.dp)
     ) {
         Column(
-            modifier = Modifier
-                .padding(20.dp)
+            modifier = Modifier.padding(20.dp)
         ) {
             Text(
                 text = "Next Appointment",
@@ -430,37 +470,22 @@ fun NextAppointmentCard(appointment: Appointment?) {
             Spacer(Modifier.height(12.dp))
 
             if (appointment != null) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Text(
-                        text = appointment.date ?:"N/A",
-                        style = MaterialTheme.typography.bodyLarge
-                    )
-                }
+                Text(
+                    text = appointment.date ?: "N/A",
+                    style = MaterialTheme.typography.bodyLarge
+                )
                 Spacer(Modifier.height(8.dp))
 
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Text(
-                        text = appointment.time ?: "N/A",
-                        style = MaterialTheme.typography.bodyLarge
-                    )
-                }
+                Text(
+                    text = appointment.time ?: "N/A",
+                    style = MaterialTheme.typography.bodyLarge
+                )
                 Spacer(Modifier.height(8.dp))
 
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Text(
-                        text = appointment.reason ?: "N/A",
-                        style = MaterialTheme.typography.bodyLarge
-                    )
-                }
+                Text(
+                    text = appointment.reason ?: "N/A",
+                    style = MaterialTheme.typography.bodyLarge
+                )
             } else {
                 Text(
                     text = "You don't have any upcoming appointments.",
@@ -471,6 +496,7 @@ fun NextAppointmentCard(appointment: Appointment?) {
         }
     }
 }
+
 
 
 

@@ -129,7 +129,7 @@ fun BookAppointmentScreen(
                         NavigationDrawerItem(
                             label = { Text(label) },
                             selected = false,
-                            icon = { Icon(icon, contentDescription = label) },
+                            icon = { Icon(icon, contentDescription = label,tint = MaterialTheme.colorScheme.primary) },
                             onClick = {
                                 scope.launch { drawerState.close() }
                                 if (navController.currentDestination?.route != route) {
@@ -167,7 +167,7 @@ fun BookAppointmentScreen(
         Scaffold(
             topBar = {
                 TopAppBar(
-                    title = { Text("Choose a Doctor") },
+                    title = { Text("MedSync") },
                     navigationIcon = {
                         IconButton(onClick = {
                             scope.launch {

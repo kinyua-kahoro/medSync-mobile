@@ -80,7 +80,6 @@ fun AppointmentFormScreen(
     var date by remember { mutableStateOf("") }
     var time by remember { mutableStateOf("") }
     var reason by remember { mutableStateOf("") }
-    var fullName by remember { mutableStateOf("") }
     val appointmentViewModel: AppointmentViewModel = viewModel()
     val context = LocalContext.current
     ModalNavigationDrawer(
@@ -124,7 +123,7 @@ fun AppointmentFormScreen(
                         NavigationDrawerItem(
                             label = { Text(label) },
                             selected = false,
-                            icon = { Icon(icon, contentDescription = label) },
+                            icon = { Icon(icon, contentDescription = label,tint = MaterialTheme.colorScheme.primary) },
                             onClick = {
                                 scope.launch { drawerState.close() }
                                 if (navController.currentDestination?.route != route) {
@@ -162,7 +161,7 @@ fun AppointmentFormScreen(
         Scaffold(
             topBar = {
                 TopAppBar(
-                    title = { Text("Book Appointment") },
+                    title = { Text("MedSync") },
                     navigationIcon = {
                         IconButton(onClick = {
                             scope.launch {
@@ -228,26 +227,41 @@ fun AppointmentFormScreen(
 
                 Button(
                     onClick = {
-                        val appointment = Appointment(
-                            patientId = patientId,
-                            doctorId = doctorId,
-                            date = date,
-                            time = time,
-                            reason = reason,
-                            fullName = "", // Optional: populate if needed
-                            status = "pending"
-                        )
-
-                        appointmentViewModel.bookAppointment(
-                            appointment = appointment,
-                            onSuccess = {
-                                Toast.makeText(context, "Appointment booked!", Toast.LENGTH_SHORT).show()
-                                navController.popBackStack()
-                            },
-                            onFailure = { errorMessage ->
-                                Toast.makeText(context, "Failed: $errorMessage", Toast.LENGTH_LONG).show()
+                        getCurrentUserName { patientName ->
+                            if (patientName == null) {
+                                Toast.makeText(context, "Failed to fetch your name", Toast.LENGTH_SHORT).show()
+                                return@getCurrentUserName
                             }
-                        )
+
+                            getDoctorNameById(doctorId) { doctorName ->
+                                if (doctorName == null) {
+                                    Toast.makeText(context, "Failed to fetch doctor name", Toast.LENGTH_SHORT).show()
+                                    return@getDoctorNameById
+                                }
+
+                                val appointment = Appointment(
+                                    patientId = patientId,
+                                    patientName = patientName,
+                                    doctorId = doctorId,
+                                    doctorName = doctorName, // Ensure this is not null
+                                    date = date,
+                                    time = time,
+                                    reason = reason,
+                                    status = "pending"
+                                )
+
+                                appointmentViewModel.bookAppointment(
+                                    appointment = appointment,
+                                    onSuccess = {
+                                        Toast.makeText(context, "Appointment booked!", Toast.LENGTH_SHORT).show()
+                                        navController.popBackStack()
+                                    },
+                                    onFailure = { errorMessage ->
+                                        Toast.makeText(context, "Failed: $errorMessage", Toast.LENGTH_LONG).show()
+                                    }
+                                )
+                            }
+                        }
                     },
                     modifier = Modifier
                         .fillMaxWidth()
@@ -260,4 +274,36 @@ fun AppointmentFormScreen(
         }
     }
 }
+
+fun getDoctorNameById(doctorId: String, onResult: (String?) -> Unit) {
+    val userRef = FirebaseDatabase.getInstance().getReference("doctors").child(doctorId)
+    userRef.child("fullName").get()
+        .addOnSuccessListener { snapshot ->
+            val name = snapshot.getValue(String::class.java)
+            onResult(name)
+        }
+        .addOnFailureListener {
+            onResult(null)
+        }
+}
+fun getCurrentUserName(onResult: (String?) -> Unit) {
+    val currentUser = FirebaseAuth.getInstance().currentUser
+    if (currentUser == null) {
+        onResult(null)
+        return
+    }
+
+    val currentUserId = currentUser.uid
+    val userRef = FirebaseDatabase.getInstance().getReference("patients").child(currentUserId)
+
+    userRef.child("fullName").get()
+        .addOnSuccessListener { snapshot ->
+            val name = snapshot.getValue(String::class.java)
+            onResult(name)
+        }
+        .addOnFailureListener {
+            onResult(null)
+        }
+}
+
 

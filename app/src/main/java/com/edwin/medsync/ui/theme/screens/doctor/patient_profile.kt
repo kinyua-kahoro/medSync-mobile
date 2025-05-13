@@ -190,7 +190,7 @@ fun PatientProfileScreen(patientId: String, navController: NavHostController) {
                 TopAppBar(
                     title = {
                         Text(
-                            text = "Patient Profile",
+                            text = "MedSync",
                             style = MaterialTheme.typography.titleLarge,
                             color = Color.White
                         )

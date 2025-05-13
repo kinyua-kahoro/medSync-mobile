@@ -1,5 +1,6 @@
 package com.edwin.medsync.ui.theme.screens.doctor
 
+import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -68,12 +69,23 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.FirebaseDatabase
 import kotlinx.coroutines.launch
 import java.util.UUID
+import android.widget.Toast
+import androidx.compose.ui.platform.LocalContext
+import com.google.firebase.database.DataSnapshot
+import com.google.firebase.database.DatabaseError
+import com.google.firebase.database.ValueEventListener
+import com.google.firebase.database.ktx.getValue
+import androidx.compose.runtime.LaunchedEffect
+import com.edwin.medsync.model.Appointment
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MedicalHistoryUpdateScreen(
     navController: NavController,
     patientId: String,
+    historyEntryId: String,
+    appointmentId: String,
     onBack: () -> Unit
 ) {
     var diagnosis by remember { mutableStateOf("") }
@@ -82,12 +94,45 @@ fun MedicalHistoryUpdateScreen(
     var isSubmitting by remember { mutableStateOf(false) }
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
+    var appointment by remember { mutableStateOf<Appointment?>(null) }
 
     // Validation check for empty fields
     val isFormValid = diagnosis.isNotEmpty() && treatment.isNotEmpty()
+    LaunchedEffect(appointmentId) {
+        if (appointmentId.isNullOrEmpty()) {
+            Log.e("LoadHistory", "appointmentId is null or empty")
+            return@LaunchedEffect
+        }
 
+        val db = FirebaseDatabase.getInstance().reference
+        val appointmentRef = db.child("appointments").child(appointmentId)
+
+        val historyRef = db.child("patients").child(patientId).child("medical_history")
+        historyRef.addListenerForSingleValueEvent(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                for (entry in snapshot.children) {
+                    val currentId = entry.child("historyEntryId").getValue(String::class.java)
+                    if (currentId == historyEntryId) {
+                        val description = entry.child("description").getValue(String::class.java) ?: ""
+                        val parts = description.split(", ").map { it.trim() }
+
+                        diagnosis = parts.find { it.startsWith("Diagnosis:") }?.removePrefix("Diagnosis:")?.trim() ?: ""
+                        treatment = parts.find { it.startsWith("Treatment:") }?.removePrefix("Treatment:")?.trim() ?: ""
+                        additionalNotes = parts.find { it.startsWith("Notes:") }?.removePrefix("Notes:")?.trim() ?: ""
+                        break
+                    }
+                }
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                Log.e("LoadHistory", "Error loading medical history: ${error.message}")
+            }
+        })
+
+    }
     // Function to handle submitting the medical history update
-    fun submitMedicalHistory() {
+    fun submitMedicalHistory(patientId: String) {
         if (isFormValid) {
             // Create a MedicalHistory object
             val medicalHistory = MedicalHistory(
@@ -103,7 +148,27 @@ fun MedicalHistoryUpdateScreen(
 
             // Call a function to add the medical history entry to Firebase
             addMedicalHistoryEntry(patientId, medicalHistory) {
-            isSubmitting = false // Reset the isSubmitting flag after the operation
+                // After adding medical history, mark the appointment as complete
+                markAppointmentAsComplete(patientId) {
+                    isSubmitting = false
+                    Toast.makeText(context, "Medical history updated successfully!", Toast.LENGTH_SHORT).show()
+                    navController.popBackStack()
+                }
+            }
+        }
+    }
+
+    // Add medical history to Firebase
+    fun addMedicalHistoryEntry(patientId: String, medicalHistory: MedicalHistory, onComplete: () -> Unit) {
+        val db = FirebaseDatabase.getInstance().reference
+        val medicalHistoryRef = db.child("patients").child(patientId).child("medical_history").push()
+        medicalHistoryRef.setValue(medicalHistory).addOnCompleteListener {
+            if (it.isSuccessful) {
+                // Handle success (e.g., show a Toast or navigate back)
+                onComplete() // Call the callback when submission is successful
+            } else {
+                // Handle error
+                onComplete() // Reset the submission state in case of failure
             }
         }
     }
@@ -131,7 +196,7 @@ fun MedicalHistoryUpdateScreen(
                         )
                         Spacer(modifier = Modifier.width(12.dp))
                         Text(
-                            text = "Update Medical History",
+                            text = "MedSync",
                             style = MaterialTheme.typography.headlineSmall,
                             fontWeight = FontWeight.Bold
                         )
@@ -142,7 +207,7 @@ fun MedicalHistoryUpdateScreen(
 
                     val navItems = listOf(
                         Triple("Dashboard", Icons.Default.Home, ROUTE_DOCTOR),
-                        Triple("Patients", Icons.Default.AccountCircle, ROUTE_APPOINTMENTS),
+                        Triple("Appointments", Icons.Default.AccountCircle, ROUTE_APPOINTMENTS),
                         Triple("My Profile", Icons.Default.AccountCircle, ROUTE_DOCTOR_PROFILE)
                     )
 
@@ -198,7 +263,7 @@ fun MedicalHistoryUpdateScreen(
             }
         },
         drawerState = drawerState
-    ){
+    ) {
         Scaffold(
             topBar = {
                 TopAppBar(
@@ -233,8 +298,7 @@ fun MedicalHistoryUpdateScreen(
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
                         containerColor = MaterialTheme.colorScheme.primary
-                    ),
-                    modifier = Modifier.shadow(4.dp)
+                    )
                 )
             }
         ) { innerPadding ->
@@ -305,7 +369,7 @@ fun MedicalHistoryUpdateScreen(
 
                     // Submit button with loading state
                     Button(
-                        onClick = { submitMedicalHistory() },
+                        onClick = { submitMedicalHistory(patientId) },
                         enabled = isFormValid && !isSubmitting,
                         modifier = Modifier
                             .fillMaxWidth()
@@ -343,6 +407,7 @@ fun MedicalHistoryUpdateScreen(
     }
 }
 
+
 // Add medical history to Firebase
 fun addMedicalHistoryEntry(patientId: String, medicalHistory: MedicalHistory, onComplete: () -> Unit) {
     val db = FirebaseDatabase.getInstance().reference
@@ -355,5 +420,27 @@ fun addMedicalHistoryEntry(patientId: String, medicalHistory: MedicalHistory, on
             // Handle error
             onComplete() // Reset the submission state in case of failure
         }
+    }
+}
+// Function to mark the appointment as complete in Firebase
+fun markAppointmentAsComplete(patientId: String, onComplete: () -> Unit) {
+    val database = FirebaseDatabase.getInstance()
+    val appointmentsRef = database.reference.child("appointments")
+
+    // Get the appointment reference for this patient
+    appointmentsRef.orderByChild("patientId").equalTo(patientId).get().addOnSuccessListener { snapshot ->
+        snapshot.children.forEach { appointmentSnapshot ->
+            // Mark appointment as complete
+            val appointmentId = appointmentSnapshot.key
+            appointmentSnapshot.ref.child("status").setValue("complete")
+                .addOnSuccessListener {
+                    onComplete() // Notify that the operation is complete
+                }
+                .addOnFailureListener { exception ->
+                    onComplete() // Notify that the operation is complete even if it failed
+                }
+        }
+    }.addOnFailureListener {
+        onComplete() // Notify that the operation is complete even if it failed
     }
 }
